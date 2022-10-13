@@ -1,0 +1,7 @@
+match (1::2::[]) with
+| [] -> 0
+| fst::t ->
+   (match t with
+    | [] -> 0
+    | snd::t -> snd)
+;;
