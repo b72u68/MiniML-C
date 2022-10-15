@@ -195,10 +195,10 @@ let compile_bop =
            | BGt -> Ca.BGt | BGe -> Ca.BGe | BLt -> Ca.BLt
            | BLe -> Ca.BLe | BNe -> Ca.BNe | BEq -> Ca.BEq
 
+exception Unimplemented
+
 let compile_uop =
   function UNot -> Ca.UNot | UNeg -> Ca.UNeg
-
-exception Unimplemented
 
 let rec pprint_env (env: env) =
     match env with
