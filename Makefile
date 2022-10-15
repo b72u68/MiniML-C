@@ -14,6 +14,12 @@ INCLUDES=-I llvm/ -I c/frontc -I c/ -I utils/ -I ml/
 
 BINS=main
 
+buildtest:
+	ocamlfind ocamlc -o runtest -linkpkg -package unix -package stdio runtest.ml
+
+test:
+	@./runtest
+
 all:
 	cd ml && make
 	ocamlopt -g -o main $(INCLUDES) $(UTILS_FILES) $(LLVM_FILES) $(FRONTC_FILES) $(C_FILES) $(ML_FILES) $(OTHER_FILES)

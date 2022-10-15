@@ -20,4 +20,5 @@ tests/*.ll
 *.cmx
 *.o
 main
+runtest
 mlc_proto.ml
