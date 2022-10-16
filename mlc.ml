@@ -212,15 +212,14 @@ let get_var_i (env: env) (x: var) : int =
 (* Compile the body of a function *)
 let rec compile_body (env: env) (name: string) (x: var) (tx: typ) (body: t_exp) =
     let fname_mangle = new_mangle name in
-    let bloc = cloc_of_mlloc body.eloc in
-    let ((sl_ext, exp_ext, clos_ext), env_ext) = extend_env env x (Ca.mk_exp (Ca.EVar x) bloc) in
+    let ((sl_ext, exp_ext, clos_ext), env_ext) = extend_env env x (mk_exp (Ca.EVar x)) in
     let (sl_body, exp_body, clos_body) = compile_exp env_ext body in
     let fbody_name = fname_mangle ^ "__body" in
     let fbody_clos = {
         cname=fbody_name;
         cret=(compile_typ body.einfo);
         cparam=(x, compile_typ tx);
-        cbody=(Ca.mk_stmt (Ca.SBlock (sl_ext @ sl_body @ [Ca.mk_stmt (Ca.SReturn (Some exp_body)) bloc])) bloc)}
+        cbody=(mk_stmt (Ca.SBlock (sl_ext @ sl_body @ [mk_stmt (Ca.SReturn (Some exp_body))])))}
     in
     let f_clos = fname_mangle ^ "_clos" in
     let stmt_f_clos_decl = mk_stmt (Ca.SDecl (f_clos, Ca.TStruct clos_struct, Some (mk_exp (Ca.ENewStruct clos_struct)))) in
@@ -231,28 +230,21 @@ let rec compile_body (env: env) (name: string) (x: var) (tx: typ) (body: t_exp) 
 (* Compile an expression *)
 and compile_exp (env: env) (e: t_exp)
           : Ca.p_stmt list * Ca.p_exp * closure_typ list =
-    let eloc = cloc_of_mlloc e.eloc in
     match e.edesc with
-    | EVar v ->
-            let temp = new_mangle v in
-            let (sl, exp, clos) = lookup_in_env (get_var_i env v) (compile_typ e.einfo) in
-            let stmt_temp_decl = mk_stmt (Ca.SDecl (temp, compile_typ e.einfo, Some exp)) in
-            (sl @ [stmt_temp_decl], Ca.mk_exp (Ca.EVar temp) eloc, clos)
+    | EVar v -> lookup_in_env (get_var_i env v) (compile_typ e.einfo)
+
     | EConst c -> compile_const c
+
     | EBinop (op, e1, e2) ->
             let (sl_e1, exp_e1, clos_e1) = compile_exp env e1 in
             let (sl_e2, exp_e2, clos_e2) = compile_exp env e2 in
-            (sl_e1 @ sl_e2, Ca.mk_exp (Ca.EBinop (compile_bop op, exp_e1, exp_e2)) eloc, clos_e1 @ clos_e2)
+            (sl_e1 @ sl_e2, mk_exp (Ca.EBinop (compile_bop op, exp_e1, exp_e2)), clos_e1 @ clos_e2)
 
     | EUnop (op, e') ->
             let (sl_e', exp_e', clos_e') = compile_exp env e' in
-            (sl_e', Ca.mk_exp (Ca.EUnop (compile_uop op, exp_e')) eloc, clos_e')
+            (sl_e', mk_exp (Ca.EUnop (compile_uop op, exp_e')), clos_e')
 
     | EIf (e1, e2, e3) ->
-            let e1loc = cloc_of_mlloc e1.eloc in
-            let e2loc = cloc_of_mlloc e2.eloc in
-            let e3loc = cloc_of_mlloc e3.eloc in
-
             let (sl_e1, exp_e1, clos_e1) = compile_exp env e1 in
             let (sl_e2, exp_e2, clos_e2) = compile_exp env e2 in
             let (sl_e3, exp_e3, clos_e3) = compile_exp env e3 in
@@ -260,19 +252,19 @@ and compile_exp (env: env) (e: t_exp)
             let temp = new_var () in
             let stmt_temp_decl = mk_stmt (Ca.SDecl (temp, compile_typ e.einfo, None)) in
             let stmt_true_block =
-                Ca.mk_stmt (
-                    Ca.SBlock (sl_e2 @ [Ca.mk_stmt (Ca.SExp (Ca.mk_exp (Ca.EAssign (mk_lhs (Ca.LHVar temp), exp_e2)) e2loc)) e2loc])
-                ) e2loc
+                mk_stmt (
+                    Ca.SBlock (sl_e2 @ [mk_stmt (Ca.SExp (mk_exp (Ca.EAssign (mk_lhs (Ca.LHVar temp), exp_e2))))])
+                )
             in
             let stmt_false_block =
-                Ca.mk_stmt (
-                    Ca.SBlock (sl_e3 @ [Ca.mk_stmt (Ca.SExp (Ca.mk_exp (Ca.EAssign (mk_lhs (Ca.LHVar temp), exp_e3)) e3loc)) e3loc])
-                ) e3loc
+                mk_stmt (
+                    Ca.SBlock (sl_e3 @ [mk_stmt (Ca.SExp (mk_exp (Ca.EAssign (mk_lhs (Ca.LHVar temp), exp_e3))))])
+                )
             in
-            let stmt_if = Ca.mk_stmt (Ca.SIf (exp_e1, stmt_true_block, stmt_false_block)) eloc in
+            let stmt_if = mk_stmt (Ca.SIf (exp_e1, stmt_true_block, stmt_false_block)) in
             (
                 sl_e1 @ [stmt_temp_decl] @ [stmt_if],
-                Ca.mk_exp (Ca.EVar temp) eloc,
+                mk_exp (Ca.EVar temp),
                 clos_e1 @ clos_e2 @ clos_e3
             )
 
@@ -281,7 +273,6 @@ and compile_exp (env: env) (e: t_exp)
             compile_body env fname v vt e'
 
     | ELet (v, typ_opt, e1, e2) ->
-            let e2loc = cloc_of_mlloc e2.eloc in
             let e1 =
                 (match typ_opt with
                 | Some t -> mk_t_exp e1.edesc e1.eloc t
@@ -291,80 +282,63 @@ and compile_exp (env: env) (e: t_exp)
             let ((sl_ext, exp_ext, clos_ext), env) = extend_env env v exp_e1 in
             let (sl_e2, exp_e2, clos_e2) = compile_exp env e2 in
             let temp = new_var () in
-            let stmt_temp_decl = Ca.mk_stmt (Ca.SDecl (temp, compile_typ e2.einfo, Some exp_e2)) e2loc in
+            let stmt_temp_decl = mk_stmt (Ca.SDecl (temp, compile_typ e2.einfo, Some exp_e2)) in
             let ((sl_pop, exp_pop, clos_pop), env) = pop_env env in
             (
                 sl_e1 @ sl_ext @ sl_e2 @ [stmt_temp_decl] @ sl_pop,
-                Ca.mk_exp (Ca.EVar temp) eloc,
+                mk_exp (Ca.EVar temp),
                 clos_e1 @ clos_ext @ clos_e2 @ clos_pop
             )
 
     | ELetFun (is_rec, f, v, vt, typ_opt, e1, e2) ->
-            let e1loc = cloc_of_mlloc e1.eloc in
-            let e2loc = cloc_of_mlloc e2.eloc in
             let e1 =
                 (match typ_opt with
                 | Some t -> mk_t_exp e1.edesc e1.eloc t
                 | None -> e1)
             in
+            let (sl_f, exp_f, clos_f) =
             if is_rec then
                 (* compile the recursive function body with extended env with placeholder *)
                 let env_ext = extend_with_placeholder env f in
-                let (sl_f, exp_f, clos_f) = compile_body env_ext f v vt e1 in
-
-                (* extend the original env with the actual function closure *)
-                let ((sl_ext, exp_ext, clos_ext), env) = extend_env env f exp_f in
-                let stmt_f_clos_set_env =
-                    (match exp_f.edesc with
-                    | Ca.EVar f_clos -> Ca.mk_stmt (Ca.SExp (Ca.mk_exp (Ca.EAssign (mk_lhs (Ca.LHField (f_clos, (), clos_env)), mk_exp (Ca.EVar env_var))) e1loc)) e1loc
-                    | _ -> failwith "Expected a variable of type closure")
-                in
-                let (sl_e2, exp_e2, clos_e2) = compile_exp env e2 in
-                let temp = new_var () in
-                let stmt_temp_decl = Ca.mk_stmt (Ca.SDecl (temp, compile_typ e2.einfo, Some exp_e2)) e2loc in
-                let ((sl_pop, exp_pop, clos_pop), env) = pop_env env in
-                (
-                    sl_f @ sl_ext @ [stmt_f_clos_set_env] @ sl_e2 @ [stmt_temp_decl] @ sl_pop,
-                    Ca.mk_exp (Ca.EVar temp) eloc,
-                    clos_f @ clos_ext @ clos_e2 @ clos_pop
-                )
+                compile_body env_ext f v vt e1
             else
-                let (sl_f, exp_f, clos_f) = compile_body env f v vt e1 in
-                let ((sl_ext, exp_ext, clos_ext), env) = extend_env env f exp_f in
-                let (sl_e2, exp_e2, clos_e2) = compile_exp env e2 in
-                let temp = new_var () in
-                let stmt_temp_decl = Ca.mk_stmt (Ca.SDecl (temp, compile_typ e2.einfo, Some exp_e2)) e2loc in
-                let ((sl_pop, exp_pop, clos_pop), env) = pop_env env in
-                (
-                    sl_f @ sl_ext @ sl_e2 @ [stmt_temp_decl] @ sl_pop,
-                    Ca.mk_exp (Ca.EVar temp) eloc,
-                    clos_f @ clos_ext @ clos_e2 @ clos_pop
-                )
+                compile_body env f v vt e1
+            in
+            let ((sl_ext, exp_ext, clos_ext), env) = extend_env env f exp_f in
+            let stmt_f_clos_set_env =
+                (match exp_f.edesc with
+                | Ca.EVar f_clos -> mk_stmt (Ca.SExp (mk_exp (Ca.EAssign (mk_lhs (Ca.LHField (f_clos, (), clos_env)), mk_exp (Ca.EVar env_var)))))
+                | _ -> failwith "Expected a variable of type closure")
+            in
+            let (sl_e2, exp_e2, clos_e2) = compile_exp env e2 in
+            let temp = new_var () in
+            let stmt_temp_decl = mk_stmt (Ca.SDecl (temp, compile_typ e2.einfo, Some exp_e2)) in
+            let ((sl_pop, exp_pop, clos_pop), env) = pop_env env in
+            (
+                sl_f @ sl_ext @ [stmt_f_clos_set_env] @ sl_e2 @ [stmt_temp_decl] @ sl_pop,
+                mk_exp (Ca.EVar temp),
+                clos_f @ clos_ext @ clos_e2 @ clos_pop
+            )
 
     | EApp (e1, e2) ->
             let (sl_e1, exp_e1, clos_e1) = compile_exp env e1 in
             let (sl_e2, exp_e2, clos_e2) = compile_exp env e2 in
             (
                 sl_e1 @ sl_e2,
-                Ca.mk_exp (Ca.ECall (mk_cast (Ca.EField (exp_e1, clos_fun)) (Ca.TFunction (compile_typ e.einfo, [(compile_typ e2.einfo, ""); (env_type, env_var)])), [exp_e2; mk_exp (Ca.EField (exp_e1, clos_env))])) eloc,
+                mk_exp (Ca.ECall (mk_cast (Ca.EField (exp_e1, clos_fun)) (Ca.TFunction (compile_typ e.einfo, [(compile_typ e2.einfo, ""); (env_type, env_var)])), [exp_e2; mk_exp (Ca.EField (exp_e1, clos_env))])),
                 clos_e1 @ clos_e2
             )
 
     | EPair (e1, e2) ->
-            let e1loc = cloc_of_mlloc e1.eloc in
-            let e2loc = cloc_of_mlloc e2.eloc in
             let (sl_e1, exp_e1, clos_e1) = compile_exp env e1 in
             let (sl_e2, exp_e2, clos_e2) = compile_exp env e2 in
             let temp = new_var () in
-            let stmt_temp_decl = Ca.mk_stmt (Ca.SDecl (temp, Ca.TStruct pair_struct, Some (mk_exp (Ca.ENewStruct pair_struct)))) eloc in
-            let stmt_temp_set_fst = Ca.mk_stmt (Ca.SExp (mk_exp (Ca.EAssign (mk_lhs (Ca.LHField (temp, (), pair_fst)), mk_exp (Ca.ECast (exp_e1, def_typ)))))) e1loc in
-            let stmt_temp_set_snd = Ca.mk_stmt (Ca.SExp (mk_exp (Ca.EAssign (mk_lhs (Ca.LHField (temp, (), pair_snd)), mk_exp (Ca.ECast (exp_e2, def_typ)))))) e2loc in
-            (sl_e1 @ sl_e2 @ [stmt_temp_decl; stmt_temp_set_fst; stmt_temp_set_snd], Ca.mk_exp (Ca.EVar temp) eloc, clos_e1 @ clos_e2)
+            let stmt_temp_decl = mk_stmt (Ca.SDecl (temp, Ca.TStruct pair_struct, Some (mk_exp (Ca.ENewStruct pair_struct)))) in
+            let stmt_temp_set_fst = mk_stmt (Ca.SExp (mk_exp (Ca.EAssign (mk_lhs (Ca.LHField (temp, (), pair_fst)), mk_exp (Ca.ECast (exp_e1, def_typ)))))) in
+            let stmt_temp_set_snd = mk_stmt (Ca.SExp (mk_exp (Ca.EAssign (mk_lhs (Ca.LHField (temp, (), pair_snd)), mk_exp (Ca.ECast (exp_e2, def_typ)))))) in
+            (sl_e1 @ sl_e2 @ [stmt_temp_decl; stmt_temp_set_fst; stmt_temp_set_snd], mk_exp (Ca.EVar temp), clos_e1 @ clos_e2)
 
     | ELetPair (v1, v2, e1, e2) ->
-            let e1loc = cloc_of_mlloc e1.eloc in
-            let e2loc = cloc_of_mlloc e2.eloc in
-
             let (sl_e1, exp_e1, clos_e1) = compile_exp env e1 in
 
             (*
@@ -372,16 +346,16 @@ and compile_exp (env: env) (e: t_exp)
                -> cannot reuse exp_e1
                -> have to recompile e1
             *)
-            let ((sl_ext1, exp_ext1, clos_ext1), env) = extend_env env v1 (Ca.mk_exp (Ca.EField (exp_e1, pair_fst)) e1loc) in
+            let ((sl_ext1, exp_ext1, clos_ext1), env) = extend_env env v1 (mk_exp (Ca.EField (exp_e1, pair_fst))) in
 
             (* compile e1 again to add tl into deBruijn indices *)
             let (sl_e1_ext1, exp_e1_ext1, clos_e1_ext1) = compile_exp env e1 in
-            let ((sl_ext2, exp_ext2, clos_ext2), env) = extend_env env v2 (Ca.mk_exp (Ca.EField (exp_e1_ext1, pair_snd)) e1loc) in
+            let ((sl_ext2, exp_ext2, clos_ext2), env) = extend_env env v2 (mk_exp (Ca.EField (exp_e1_ext1, pair_snd))) in
 
             let (sl_e2, exp_e2, clos_e2) = compile_exp env e2 in
 
             let temp = new_var () in
-            let stmt_temp_decl = Ca.mk_stmt (Ca.SDecl (temp, compile_typ e2.einfo, Some exp_e2)) e2loc in
+            let stmt_temp_decl = mk_stmt (Ca.SDecl (temp, compile_typ e2.einfo, Some exp_e2)) in
 
             (* pop snd and fst out of deBruijn indices *)
             let ((sl_pop1, exp_pop1, clos_pop1), env) = pop_env env in
@@ -389,47 +363,41 @@ and compile_exp (env: env) (e: t_exp)
 
             (
                 sl_e1 @ sl_ext1 @ sl_e1_ext1 @ sl_ext2 @ sl_e2 @ [stmt_temp_decl] @ sl_pop1 @ sl_pop2,
-                Ca.mk_exp (Ca.EVar temp) eloc,
+                mk_exp (Ca.EVar temp),
                 clos_e1 @ clos_ext1 @ clos_e1_ext1 @ clos_ext2 @ clos_e2 @ clos_pop1 @ clos_pop2
             )
 
     | ECons (e1, e2) ->
-            let e1loc = cloc_of_mlloc e1.eloc in
-            let e2loc = cloc_of_mlloc e2.eloc in
             let (sl_e1, exp_e1, clos_e1) = compile_exp env e1 in
             let (sl_e2, exp_e2, clos_e2) = compile_exp env e2 in
             let temp = new_var () in
-            let stmt_temp_decl = Ca.mk_stmt (Ca.SDecl (temp, Ca.TStruct list_struct, Some (mk_exp (Ca.ENewStruct list_struct)))) eloc in
-            let stmt_temp_set_hd = Ca.mk_stmt (Ca.SExp (mk_exp (Ca.EAssign (mk_lhs (Ca.LHField (temp, (), list_hd)), mk_exp (Ca.ECast (exp_e1, def_typ)))))) e1loc in
-            let stmt_temp_set_tl = Ca.mk_stmt (Ca.SExp (mk_exp (Ca.EAssign (mk_lhs (Ca.LHField (temp, (), list_tl)), exp_e2)))) e2loc in
-            (sl_e1 @ sl_e2 @ [stmt_temp_decl; stmt_temp_set_hd; stmt_temp_set_tl], Ca.mk_exp (Ca.EVar temp) eloc, clos_e1 @ clos_e2)
+            let stmt_temp_decl = mk_stmt (Ca.SDecl (temp, Ca.TStruct list_struct, Some (mk_exp (Ca.ENewStruct list_struct)))) in
+            let stmt_temp_set_hd = mk_stmt (Ca.SExp (mk_exp (Ca.EAssign (mk_lhs (Ca.LHField (temp, (), list_hd)), mk_exp (Ca.ECast (exp_e1, def_typ)))))) in
+            let stmt_temp_set_tl = mk_stmt (Ca.SExp (mk_exp (Ca.EAssign (mk_lhs (Ca.LHField (temp, (), list_tl)), exp_e2)))) in
+            (sl_e1 @ sl_e2 @ [stmt_temp_decl; stmt_temp_set_hd; stmt_temp_set_tl], mk_exp (Ca.EVar temp), clos_e1 @ clos_e2)
 
    | EMatchList (e1, e2, h, t, e3) ->
-            let e1loc = cloc_of_mlloc e1.eloc in
-            let e2loc = cloc_of_mlloc e2.eloc in
-            let e3loc = cloc_of_mlloc e3.eloc in
-
             let (sl_e1, exp_e1, clos_e1) = compile_exp env e1 in
             let (sl_e2, exp_e2, clos_e2) = compile_exp env e2 in
 
             let temp = new_var () in
-            let test_exp = Ca.mk_exp (Ca.EBinop (Ca.BEq, Ca.mk_exp (Ca.ECast (exp_e1, (Ca.TInt))) e1loc, mk_exp (Ca.EConst (Ca.CInt 0)))) e1loc in
+            let test_exp = mk_exp (Ca.EBinop (Ca.BEq, mk_exp (Ca.ECast (exp_e1, (Ca.TInt))), mk_exp (Ca.EConst (Ca.CInt 0)))) in
             let stmt_temp_decl = mk_stmt (Ca.SDecl (temp, compile_typ e2.einfo, None)) in
 
-            let stmt_true_block = Ca.mk_stmt (Ca.SBlock (sl_e2 @ [mk_assign_s temp exp_e2])) e2loc in
+            let stmt_true_block = mk_stmt (Ca.SBlock (sl_e2 @ [mk_assign_s temp exp_e2])) in
 
             (*
                adding h to the environment change the index of e1 in deBruijn indices
                -> cannot reuse exp_e1
                -> have to recompile e1
            *)
-            let ((sl_ext1, exp_ext1, clos_ext1), env) = extend_env env h (Ca.mk_exp (Ca.EField (exp_e1, list_hd)) e1loc) in
+            let ((sl_ext1, exp_ext1, clos_ext1), env) = extend_env env h (mk_exp (Ca.EField (exp_e1, list_hd))) in
 
             (* compile e1 again to add tl into deBruijn indices *)
             let (sl_e1_ext1, exp_e1_ext1, clos_e1_ext1) = compile_exp env e1 in
 
             (* adding tl to deBruijn indices *)
-            let ((sl_ext2, exp_ext2, clos_ext2), env) = extend_env env t (Ca.mk_exp (Ca.EField (exp_e1_ext1, list_tl)) e1loc) in
+            let ((sl_ext2, exp_ext2, clos_ext2), env) = extend_env env t (mk_exp (Ca.EField (exp_e1_ext1, list_tl))) in
 
             let (sl_e3, exp_e3, clos_e3) = compile_exp env e3 in
 
@@ -437,12 +405,12 @@ and compile_exp (env: env) (e: t_exp)
             let ((sl_pop1, exp_pop1, clos_pop1), env) = pop_env env in
             let ((sl_pop2, exp_pop2, clos_pop2), env) = pop_env env in
 
-            let stmt_false_block = Ca.mk_stmt (Ca.SBlock (sl_ext1 @ sl_e1_ext1 @ sl_ext2 @ sl_e3 @ [mk_assign_s temp exp_e3] @ sl_pop1 @ sl_pop2)) e3loc in
-            let stmt_if_block = Ca.mk_stmt (Ca.SIf (test_exp, stmt_true_block, stmt_false_block)) eloc in
+            let stmt_false_block = mk_stmt (Ca.SBlock (sl_ext1 @ sl_e1_ext1 @ sl_ext2 @ sl_e3 @ [mk_assign_s temp exp_e3] @ sl_pop1 @ sl_pop2)) in
+            let stmt_if_block = mk_stmt (Ca.SIf (test_exp, stmt_true_block, stmt_false_block)) in
 
             (
                 sl_e1 @ [stmt_temp_decl] @ [stmt_if_block],
-                Ca.mk_exp (Ca.EVar temp) eloc,
+                mk_exp (Ca.EVar temp),
                 clos_e1 @ clos_e2 @ clos_ext1 @ clos_e1_ext1 @ clos_ext2 @ clos_e3 @ clos_pop1 @ clos_pop2
             )
 
