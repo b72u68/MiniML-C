@@ -224,8 +224,8 @@ let rec compile_body (env: env) (name: string) (x: var) (tx: typ) (body: t_exp) 
     let f_clos = fname_mangle ^ "_clos" in
     let stmt_f_clos_decl = mk_stmt (Ca.SDecl (f_clos, Ca.TStruct clos_struct, Some (mk_exp (Ca.ENewStruct clos_struct)))) in
     let stmt_f_clos_set_env = mk_stmt (Ca.SExp (mk_exp (Ca.EAssign (mk_lhs (Ca.LHField (f_clos, (), clos_env)), mk_exp (Ca.EVar env_var))))) in
-    let stmt_f_clos_set_clos = mk_stmt (Ca.SExp (mk_exp (Ca.EAssign (mk_lhs (Ca.LHField (f_clos, (), clos_fun)), mk_cast (Ca.EVar fbody_name) (Ca.TFunction (def_typ, [])))))) in
-    ([stmt_f_clos_decl; stmt_f_clos_set_env; stmt_f_clos_set_clos], mk_exp (Ca.EVar f_clos), clos_ext @ [fbody_clos] @ clos_body)
+    let stmt_f_clos_set_fun = mk_stmt (Ca.SExp (mk_exp (Ca.EAssign (mk_lhs (Ca.LHField (f_clos, (), clos_fun)), mk_cast (Ca.EVar fbody_name) (Ca.TFunction (def_typ, [])))))) in
+    ([stmt_f_clos_decl; stmt_f_clos_set_env; stmt_f_clos_set_fun], mk_exp (Ca.EVar f_clos), clos_ext @ [fbody_clos] @ clos_body)
 
 (* Compile an expression *)
 and compile_exp (env: env) (e: t_exp)
@@ -334,8 +334,8 @@ and compile_exp (env: env) (e: t_exp)
             let (sl_e2, exp_e2, clos_e2) = compile_exp env e2 in
             let temp = new_var () in
             let stmt_temp_decl = mk_stmt (Ca.SDecl (temp, Ca.TStruct pair_struct, Some (mk_exp (Ca.ENewStruct pair_struct)))) in
-            let stmt_temp_set_fst = mk_stmt (Ca.SExp (mk_exp (Ca.EAssign (mk_lhs (Ca.LHField (temp, (), pair_fst)), mk_exp (Ca.ECast (exp_e1, def_typ)))))) in
-            let stmt_temp_set_snd = mk_stmt (Ca.SExp (mk_exp (Ca.EAssign (mk_lhs (Ca.LHField (temp, (), pair_snd)), mk_exp (Ca.ECast (exp_e2, def_typ)))))) in
+            let stmt_temp_set_fst = mk_stmt (Ca.SExp (mk_exp (Ca.EAssign (mk_lhs (Ca.LHField (temp, (), pair_fst)), mk_cast_e exp_e1 def_typ)))) in
+            let stmt_temp_set_snd = mk_stmt (Ca.SExp (mk_exp (Ca.EAssign (mk_lhs (Ca.LHField (temp, (), pair_snd)), mk_cast_e exp_e2 def_typ)))) in
             (sl_e1 @ sl_e2 @ [stmt_temp_decl; stmt_temp_set_fst; stmt_temp_set_snd], mk_exp (Ca.EVar temp), clos_e1 @ clos_e2)
 
     | ELetPair (v1, v2, e1, e2) ->
@@ -372,7 +372,7 @@ and compile_exp (env: env) (e: t_exp)
             let (sl_e2, exp_e2, clos_e2) = compile_exp env e2 in
             let temp = new_var () in
             let stmt_temp_decl = mk_stmt (Ca.SDecl (temp, Ca.TStruct list_struct, Some (mk_exp (Ca.ENewStruct list_struct)))) in
-            let stmt_temp_set_hd = mk_stmt (Ca.SExp (mk_exp (Ca.EAssign (mk_lhs (Ca.LHField (temp, (), list_hd)), mk_exp (Ca.ECast (exp_e1, def_typ)))))) in
+            let stmt_temp_set_hd = mk_stmt (Ca.SExp (mk_exp (Ca.EAssign (mk_lhs (Ca.LHField (temp, (), list_hd)), mk_cast_e exp_e1 def_typ)))) in
             let stmt_temp_set_tl = mk_stmt (Ca.SExp (mk_exp (Ca.EAssign (mk_lhs (Ca.LHField (temp, (), list_tl)), exp_e2)))) in
             (sl_e1 @ sl_e2 @ [stmt_temp_decl; stmt_temp_set_hd; stmt_temp_set_tl], mk_exp (Ca.EVar temp), clos_e1 @ clos_e2)
 
@@ -381,7 +381,7 @@ and compile_exp (env: env) (e: t_exp)
             let (sl_e2, exp_e2, clos_e2) = compile_exp env e2 in
 
             let temp = new_var () in
-            let test_exp = mk_exp (Ca.EBinop (Ca.BEq, mk_exp (Ca.ECast (exp_e1, (Ca.TInt))), mk_exp (Ca.EConst (Ca.CInt 0)))) in
+            let test_exp = mk_exp (Ca.EBinop (Ca.BEq, mk_cast_e exp_e1 Ca.TInt, mk_exp (Ca.EConst (Ca.CInt 0)))) in
             let stmt_temp_decl = mk_stmt (Ca.SDecl (temp, compile_typ e2.einfo, None)) in
 
             let stmt_true_block = mk_stmt (Ca.SBlock (sl_e2 @ [mk_assign_s temp exp_e2])) in
