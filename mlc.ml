@@ -208,20 +208,23 @@ let rec pprint_env (env: env) =
 (* get deBruijn index i of variable x in the environment *)
 let get_var_i (env: env) (x: var) : int =
     snd (List.find (fun (v, i) -> v = x && i >= 0) env)
+;;
+
+(* create closure name from given function name *)
+let mk_clos_name (name: string) : string = name ^ "_clos";;
 
 (* Compile the body of a function *)
 let rec compile_body (env: env) (name: string) (x: var) (tx: typ) (body: t_exp) =
-    let fname_mangle = new_mangle name in
     let ((sl_ext, exp_ext, clos_ext), env_ext) = extend_env env x (mk_exp (Ca.EVar x)) in
     let (sl_body, exp_body, clos_body) = compile_exp env_ext body in
-    let fbody_name = fname_mangle ^ "__body" in
+    let fbody_name = name ^ "__body" in
     let fbody_clos = {
         cname=fbody_name;
         cret=(compile_typ body.einfo);
         cparam=(x, compile_typ tx);
         cbody=(mk_stmt (Ca.SBlock (sl_ext @ sl_body @ [mk_stmt (Ca.SReturn (Some exp_body))])))}
     in
-    let f_clos = fname_mangle ^ "_clos" in
+    let f_clos = mk_clos_name name in
     let stmt_f_clos_decl = mk_stmt (Ca.SDecl (f_clos, Ca.TStruct clos_struct, Some (mk_exp (Ca.ENewStruct clos_struct)))) in
     let stmt_f_clos_set_env = mk_stmt (Ca.SExp (mk_exp (Ca.EAssign (mk_lhs (Ca.LHField (f_clos, (), clos_env)), mk_exp (Ca.EVar env_var))))) in
     let stmt_f_clos_set_fun = mk_stmt (Ca.SExp (mk_exp (Ca.EAssign (mk_lhs (Ca.LHField (f_clos, (), clos_fun)), mk_cast (Ca.EVar fbody_name) (Ca.TFunction (def_typ, [])))))) in
@@ -296,26 +299,27 @@ and compile_exp (env: env) (e: t_exp)
                 | Some t -> mk_t_exp e1.edesc e1.eloc t
                 | None -> e1)
             in
+            let fname = new_mangle f in
             let (sl_f, exp_f, clos_f) =
             if is_rec then
                 (* compile the recursive function body with extended env with placeholder *)
                 let env_ext = extend_with_placeholder env f in
-                compile_body env_ext f v vt e1
+                compile_body env_ext fname v vt e1
             else
-                compile_body env f v vt e1
+                compile_body env fname v vt e1
             in
             let ((sl_ext, exp_ext, clos_ext), env) = extend_env env f exp_f in
+            let fname_clos = mk_clos_name fname in
             let stmt_f_clos_set_env =
-                (match exp_f.edesc with
-                | Ca.EVar f_clos -> mk_stmt (Ca.SExp (mk_exp (Ca.EAssign (mk_lhs (Ca.LHField (f_clos, (), clos_env)), mk_exp (Ca.EVar env_var)))))
-                | _ -> failwith "Expected a variable of type closure")
+                if is_rec then [mk_stmt (Ca.SExp (mk_exp (Ca.EAssign (mk_lhs (Ca.LHField (fname_clos, (), clos_env)), mk_exp (Ca.EVar env_var)))))]
+                else []
             in
             let (sl_e2, exp_e2, clos_e2) = compile_exp env e2 in
             let temp = new_var () in
             let stmt_temp_decl = mk_stmt (Ca.SDecl (temp, compile_typ e2.einfo, Some exp_e2)) in
             let ((sl_pop, exp_pop, clos_pop), env) = pop_env env in
             (
-                sl_f @ sl_ext @ [stmt_f_clos_set_env] @ sl_e2 @ [stmt_temp_decl] @ sl_pop,
+                sl_f @ sl_ext @ stmt_f_clos_set_env @ sl_e2 @ [stmt_temp_decl] @ sl_pop,
                 mk_exp (Ca.EVar temp),
                 clos_f @ clos_ext @ clos_e2 @ clos_pop
             )
