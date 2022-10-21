@@ -200,16 +200,6 @@ exception Unimplemented
 let compile_uop =
   function UNot -> Ca.UNot | UNeg -> Ca.UNeg
 
-let rec pprint_env (env: env) =
-    match env with
-    | [] -> print_endline ""
-    | (x, i)::t -> Printf.printf "(%s, %d) " x i; pprint_env t
-
-(* get deBruijn index i of variable x in the environment *)
-let get_var_i (env: env) (x: var) : int =
-    snd (List.find (fun (v, i) -> v = x && i >= 0) env)
-;;
-
 (* create closure name from given function name *)
 let mk_clos_name (name: string) : string = name ^ "_clos";;
 
@@ -234,7 +224,7 @@ let rec compile_body (env: env) (name: string) (x: var) (tx: typ) (body: t_exp) 
 and compile_exp (env: env) (e: t_exp)
           : Ca.p_stmt list * Ca.p_exp * closure_typ list =
     match e.edesc with
-    | EVar v -> lookup_in_env (get_var_i env v) (compile_typ e.einfo)
+    | EVar v -> lookup_in_env (List.assoc v env) (compile_typ e.einfo)
 
     | EConst c -> compile_const c
 
