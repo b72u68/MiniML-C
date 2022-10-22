@@ -139,7 +139,7 @@ let escape_string str =
 let rec string_of_typ typ =
   match typ with
   | TVoid -> "void"
-  | TBool -> "bool"
+  | TBool -> "_Bool"
   | TChar -> "char"
   | TInt -> "int"
   | TArray t -> (string_of_typ t) ^ "[]"
@@ -150,7 +150,7 @@ let rec string_of_typ typ =
      (string_of_typ t) ^ "(*)" ^ "("
      ^ String.concat ", " (List.map (fun (t, s) -> string_of_typ t) args) ^ ")"
 (* | TNamedType s -> print s *)
-    
+
 let rec print_base_type typ =
   match typ with
   | TVoid -> print "void"
@@ -336,7 +336,7 @@ and print_expression (exp : 'a exp) (lvl : int) =
       print txt;
       space ();
       (*print_expression exp2 (if op = SUB then (lvl' + 1) else lvl');*)
-      print_expression exp2 (lvl' + 1)      
+      print_expression exp2 (lvl' + 1)
     (*if (op = SUB) && (lvl <= lvl') then print ")"*)
     | EAssign (l, exp2) ->
       (*if (op = SUB) && (lvl <= lvl') then print "(";*)

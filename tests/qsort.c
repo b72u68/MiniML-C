@@ -106,6 +106,26 @@ __list qsort63__body(__list l, __list __env)
   return __ctemp66;
 }
 
+__clos partition32__body(int p, __list __env)
+{
+  __list __ctemp33 = new(__list);
+  __ctemp33.list_tl = __env;
+  __ctemp33.list_hd = ((int)p);
+  __env = __ctemp33;
+  __clos part_rec34_clos = new(__clos);
+  part_rec34_clos.clos_env = __env;
+  part_rec34_clos.clos_fun = ((int(*)())part_rec34__body);
+  __list __ctemp59 = new(__list);
+  __ctemp59.list_tl = __env;
+  __ctemp59.list_hd = ((int)part_rec34_clos);
+  __env = __ctemp59;
+  part_rec34_clos.clos_env = __env;
+  __clos __ctemp60 = ((__clos)__lookup(0, __env));
+  __clos __ctemp61 = __ctemp60;
+  __env = __env.list_tl;
+  return __ctemp61;
+}
+
 __pair part_rec34__body(__list l, __list __env)
 {
   __list __ctemp35 = new(__list);
@@ -182,26 +202,6 @@ __pair part_rec34__body(__list l, __list __env)
     __env = __env.list_tl;
   }
   return __ctemp38;
-}
-
-__clos partition32__body(int p, __list __env)
-{
-  __list __ctemp33 = new(__list);
-  __ctemp33.list_tl = __env;
-  __ctemp33.list_hd = ((int)p);
-  __env = __ctemp33;
-  __clos part_rec34_clos = new(__clos);
-  part_rec34_clos.clos_env = __env;
-  part_rec34_clos.clos_fun = ((int(*)())part_rec34__body);
-  __list __ctemp59 = new(__list);
-  __ctemp59.list_tl = __env;
-  __ctemp59.list_hd = ((int)part_rec34_clos);
-  __env = __ctemp59;
-  part_rec34_clos.clos_env = __env;
-  __clos __ctemp60 = ((__clos)__lookup(0, __env));
-  __clos __ctemp61 = __ctemp60;
-  __env = __env.list_tl;
-  return __ctemp61;
 }
 
 __list merge0__body(__pair l1l2, __list __env)

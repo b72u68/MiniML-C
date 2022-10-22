@@ -302,9 +302,10 @@ and compile_exp (env: env) (e: t_exp)
                 compile_body env fname v vt e1
             in
             let ((sl_ext, exp_ext, clos_ext), env) = extend_env env f exp_f in
-            let fname_clos = mk_clos_name fname in
             let stmt_f_clos_set_env =
-                if is_rec then [mk_stmt (Ca.SExp (mk_exp (Ca.EAssign (mk_lhs (Ca.LHField (fname_clos, (), clos_env)), mk_exp (Ca.EVar env_var)))))]
+                if is_rec then
+                    let fname_clos = mk_clos_name fname in
+                    [mk_stmt (Ca.SExp (mk_exp (Ca.EAssign (mk_lhs (Ca.LHField (fname_clos, (), clos_env)), mk_exp (Ca.EVar env_var)))))]
                 else []
             in
             let (sl_e2, exp_e2, clos_e2) = compile_exp env e2 in
@@ -391,7 +392,7 @@ and compile_exp (env: env) (e: t_exp)
                 clos_e1 @ clos_e2 @ clos_ext1 @ clos_ext2 @ clos_e3 @ clos_pop1 @ clos_pop2
             )
 
-   | EAnnot (e', t) -> compile_exp env { edesc=e'.edesc; eloc=e'.eloc; einfo=t }
+   | EAnnot (e', t) -> compile_exp env (mk_t_exp e'.edesc e'.eloc t)
 
 let lib_structs =
   [(Ca.DStructDef (list_struct, list_fields));

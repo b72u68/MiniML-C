@@ -21,17 +21,6 @@ int __lookup(int i, __list __env)
   return __env.list_hd;
 }
 
-int __fun66__body(int y, __list __env)
-{
-  __list __ctemp67 = new(__list);
-  __ctemp67.list_tl = __env;
-  __ctemp67.list_hd = ((int)y);
-  __env = __ctemp67;
-  int __ctemp68 = ((int)__lookup(1, __env));
-  int __ctemp69 = ((int)__lookup(0, __env));
-  return __ctemp68 + __ctemp69;
-}
-
 __clos __fun64__body(int x, __list __env)
 {
   __list __ctemp65 = new(__list);
@@ -42,6 +31,17 @@ __clos __fun64__body(int x, __list __env)
   __fun66_clos.clos_env = __env;
   __fun66_clos.clos_fun = ((int(*)())__fun66__body);
   return __fun66_clos;
+}
+
+int __fun66__body(int y, __list __env)
+{
+  __list __ctemp67 = new(__list);
+  __ctemp67.list_tl = __env;
+  __ctemp67.list_hd = ((int)y);
+  __env = __ctemp67;
+  int __ctemp68 = ((int)__lookup(1, __env));
+  int __ctemp69 = ((int)__lookup(0, __env));
+  return __ctemp68 + __ctemp69;
 }
 
 int __fun57__body(int x, __list __env)
@@ -63,6 +63,43 @@ int __fun57__body(int x, __list __env)
     __ctemp62 = 0;
   }
   return __ctemp62;
+}
+
+__clos __fun23__body(__clos mapper, __list __env)
+{
+  __list __ctemp24 = new(__list);
+  __ctemp24.list_tl = __env;
+  __ctemp24.list_hd = ((int)mapper);
+  __env = __ctemp24;
+  __clos __fun25_clos = new(__clos);
+  __fun25_clos.clos_env = __env;
+  __fun25_clos.clos_fun = ((int(*)())__fun25__body);
+  return __fun25_clos;
+}
+
+__list __fun25__body(__list lst, __list __env)
+{
+  __list __ctemp26 = new(__list);
+  __ctemp26.list_tl = __env;
+  __ctemp26.list_hd = ((int)lst);
+  __env = __ctemp26;
+  __clos map_helper27_clos = new(__clos);
+  map_helper27_clos.clos_env = __env;
+  map_helper27_clos.clos_fun = ((int(*)())map_helper27__body);
+  __list __ctemp51 = new(__list);
+  __ctemp51.list_tl = __env;
+  __ctemp51.list_hd = ((int)map_helper27_clos);
+  __env = __ctemp51;
+  map_helper27_clos.clos_env = __env;
+  __clos __ctemp52 = ((__clos)__lookup(0, __env));
+  __list __ctemp53 = ((__list)__lookup(1, __env));
+  __pair __ctemp54 = new(__pair);
+  __ctemp54.pair_fst = ((int)(__list)0);
+  __ctemp54.pair_snd = ((int)__ctemp53);
+  __list __ctemp55 = ((__list(*)(__pair, __list))__ctemp52.clos_fun)(__ctemp54,
+    __ctemp52.clos_env);
+  __env = __env.list_tl;
+  return __ctemp55;
 }
 
 __list map_helper27__body(__pair args, __list __env)
@@ -134,43 +171,6 @@ __list map_helper27__body(__pair args, __list __env)
   __env = __env.list_tl;
   __env = __env.list_tl;
   return __ctemp50;
-}
-
-__list __fun25__body(__list lst, __list __env)
-{
-  __list __ctemp26 = new(__list);
-  __ctemp26.list_tl = __env;
-  __ctemp26.list_hd = ((int)lst);
-  __env = __ctemp26;
-  __clos map_helper27_clos = new(__clos);
-  map_helper27_clos.clos_env = __env;
-  map_helper27_clos.clos_fun = ((int(*)())map_helper27__body);
-  __list __ctemp51 = new(__list);
-  __ctemp51.list_tl = __env;
-  __ctemp51.list_hd = ((int)map_helper27_clos);
-  __env = __ctemp51;
-  map_helper27_clos.clos_env = __env;
-  __clos __ctemp52 = ((__clos)__lookup(0, __env));
-  __list __ctemp53 = ((__list)__lookup(1, __env));
-  __pair __ctemp54 = new(__pair);
-  __ctemp54.pair_fst = ((int)(__list)0);
-  __ctemp54.pair_snd = ((int)__ctemp53);
-  __list __ctemp55 = ((__list(*)(__pair, __list))__ctemp52.clos_fun)(__ctemp54,
-    __ctemp52.clos_env);
-  __env = __env.list_tl;
-  return __ctemp55;
-}
-
-__clos __fun23__body(__clos mapper, __list __env)
-{
-  __list __ctemp24 = new(__list);
-  __ctemp24.list_tl = __env;
-  __ctemp24.list_hd = ((int)mapper);
-  __env = __ctemp24;
-  __clos __fun25_clos = new(__clos);
-  __fun25_clos.clos_env = __env;
-  __fun25_clos.clos_fun = ((int(*)())__fun25__body);
-  return __fun25_clos;
 }
 
 int fold0__body(__pair args, __list __env)
