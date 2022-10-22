@@ -13,8 +13,6 @@ utils/*.cmo
 utils/*.cmi
 utils/*.cmx
 utils/*.o
-tests/*.c
-tests/*.ll
 *.cmo
 *.cmi
 *.cmx
