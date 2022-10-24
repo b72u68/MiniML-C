@@ -21,18 +21,6 @@ int __lookup(int i, __list __env)
   return __env.list_hd;
 }
 
-__clos __fun12__body(int x, __list __env)
-{
-  __list __ctemp13 = new(__list);
-  __ctemp13.list_tl = __env;
-  __ctemp13.list_hd = ((int)x);
-  __env = __ctemp13;
-  __clos __fun14_clos = new(__clos);
-  __fun14_clos.clos_env = __env;
-  __fun14_clos.clos_fun = ((int(*)())__fun14__body);
-  return __fun14_clos;
-}
-
 int __fun14__body(int y, __list __env)
 {
   __list __ctemp15 = new(__list);
@@ -44,16 +32,16 @@ int __fun14__body(int y, __list __env)
   return __ctemp16 + __ctemp17;
 }
 
-__clos uncurry0__body(__clos f, __list __env)
+__clos __fun12__body(int x, __list __env)
 {
-  __list __ctemp1 = new(__list);
-  __ctemp1.list_tl = __env;
-  __ctemp1.list_hd = ((int)f);
-  __env = __ctemp1;
-  __clos __fun2_clos = new(__clos);
-  __fun2_clos.clos_env = __env;
-  __fun2_clos.clos_fun = ((int(*)())__fun2__body);
-  return __fun2_clos;
+  __list __ctemp13 = new(__list);
+  __ctemp13.list_tl = __env;
+  __ctemp13.list_hd = ((int)x);
+  __env = __ctemp13;
+  __clos __fun14_clos = new(__clos);
+  __fun14_clos.clos_env = __env;
+  __fun14_clos.clos_fun = ((int(*)())__fun14__body);
+  return __fun14_clos;
 }
 
 int __fun2__body(__pair xy, __list __env)
@@ -82,6 +70,18 @@ int __fun2__body(__pair xy, __list __env)
   __env = __env.list_tl;
   __env = __env.list_tl;
   return __ctemp10;
+}
+
+__clos uncurry0__body(__clos f, __list __env)
+{
+  __list __ctemp1 = new(__list);
+  __ctemp1.list_tl = __env;
+  __ctemp1.list_hd = ((int)f);
+  __env = __ctemp1;
+  __clos __fun2_clos = new(__clos);
+  __fun2_clos.clos_env = __env;
+  __fun2_clos.clos_fun = ((int(*)())__fun2__body);
+  return __fun2_clos;
 }
 
 int main()

@@ -21,18 +21,6 @@ int __lookup(int i, __list __env)
   return __env.list_hd;
 }
 
-__clos f_this12__body(__clos f, __list __env)
-{
-  __list __ctemp13 = new(__list);
-  __ctemp13.list_tl = __env;
-  __ctemp13.list_hd = ((int)f);
-  __env = __ctemp13;
-  __clos __fun14_clos = new(__clos);
-  __fun14_clos.clos_env = __env;
-  __fun14_clos.clos_fun = ((int(*)())__fun14__body);
-  return __fun14_clos;
-}
-
 int __fun14__body(int x, __list __env)
 {
   __list __ctemp15 = new(__list);
@@ -43,6 +31,18 @@ int __fun14__body(int x, __list __env)
   int __ctemp17 = ((int)__lookup(0, __env));
   return ((int(*)(int, __list))__ctemp16.clos_fun)(__ctemp17,
     __ctemp16.clos_env);
+}
+
+__clos f_this12__body(__clos f, __list __env)
+{
+  __list __ctemp13 = new(__list);
+  __ctemp13.list_tl = __env;
+  __ctemp13.list_hd = ((int)f);
+  __env = __ctemp13;
+  __clos __fun14_clos = new(__clos);
+  __fun14_clos.clos_env = __env;
+  __fun14_clos.clos_fun = ((int(*)())__fun14__body);
+  return __fun14_clos;
 }
 
 int f8__body(int x, __list __env)
